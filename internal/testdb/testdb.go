@@ -162,7 +162,6 @@ func truncateAll(ctx context.Context, pool *pgxpool.Pool) error {
 		watched_contracts,
 		replay_state,
 		dead_letters,
-		audit_checkpoints,
 		audit_verification_state
 		RESTART IDENTITY`)
 	if err != nil {
