@@ -5,11 +5,11 @@ package testdb
 import (
 	"context"
 	"errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
 	"time"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestIsDockerUnavailable(t *testing.T) {
@@ -72,7 +72,6 @@ func TestTestDB_HarnessCoverage(t *testing.T) {
 
 	// A dummy migration func that creates a test table and schema_migrations table
 	// to verify schema and migration version remain intact.
-	t := t
 	migrateFn := func(dbURL string) error {
 		// Minimal no-op or custom table creator for testing Setup & truncation properties
 		return nil
