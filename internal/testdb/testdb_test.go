@@ -67,15 +67,10 @@ func TestIsDockerUnavailable(t *testing.T) {
 func TestTestDB_HarnessCoverage(t *testing.T) {
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {
-		// If no shared database is supplied, testcontainer or skip behavior is tested via standard paths,
-		// but we can verify that Setup handles missing URL by attempting container or skipping.
 		t.Skip("TEST_DATABASE_URL not set; skipping shared harness database tests")
 	}
 
-	// A dummy migration func that creates a test table and schema_migrations table
-	// to verify schema and migration version remain intact.
 	migrateFn := func(dbURL string) error {
-		// Minimal no-op or custom table creator for testing Setup & truncation properties
 		return nil
 	}
 
@@ -84,11 +79,9 @@ func TestTestDB_HarnessCoverage(t *testing.T) {
 		require.NotNil(t, pool)
 
 		ctx := context.Background()
-		// Insert dummy data into a tracked table to verify truncation clears it
 		_, err := pool.Exec(ctx, "INSERT INTO watched_contracts (contract_id) VALUES ('C_TEST_TRUNCATE')")
 		require.NoError(t, err)
 
-		// Run setup again to simulate next test truncation
 		pool2 := Setup(t, migrateFn)
 		require.NotNil(t, pool2)
 
@@ -99,8 +92,6 @@ func TestTestDB_HarnessCoverage(t *testing.T) {
 	})
 
 	t.Run("Cleanup with Expired Test Context", func(t *testing.T) {
-		// Verify that cleanup handlers use background context with timeout so they succeed
-		// even if the incoming test context is already expired or canceled.
 		expiredCtx, cancel := context.WithTimeout(context.Background(), 0)
 		defer cancel()
 		time.Sleep(10 * time.Millisecond)
@@ -109,7 +100,6 @@ func TestTestDB_HarnessCoverage(t *testing.T) {
 		if err == nil {
 			defer pool.Close()
 			err = truncateAll(expiredCtx, pool)
-			// Even with expired context, internal cleanups use independent background contexts
 			_ = err
 		}
 	})
