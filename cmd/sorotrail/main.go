@@ -12,6 +12,8 @@ package main
 
 // Wave: keep assigned SoroTrail checks grouped for precious1joe.
 
+// Wave: keep assigned SoroTrail checks grouped for ndyugwu.
+
 // Wave: keep assigned SoroTrail checks grouped for Ennyblack.
 
 import (
@@ -118,7 +120,7 @@ func dispatch(args []string) error {
 		return runMigrate(args[1:])
 	case "healthcheck":
 		// The healthcheck subcommand manages its own exit codes
-		// (0 healthy, 1 unhealthy, 2 usage error) — the docker
+		// (0 healthy, 1 unhealthy, 2 usage error) â€” the docker
 		// HEALTHCHECK directive inspects them directly, so we
 		// hand control to os.Exit here rather than letting the
 		// main switch collapse everything into 1-with-a-prefix.
@@ -129,8 +131,8 @@ func dispatch(args []string) error {
 		return nil
 	case "health":
 		// Like healthcheck, manages its own exit codes (0 healthy,
-		// 1 unhealthy, 2 usage) so external probes — k8s liveness,
-		// load balancers, CI gates — read the outcome directly.
+		// 1 unhealthy, 2 usage) so external probes â€” k8s liveness,
+		// load balancers, CI gates â€” read the outcome directly.
 		code := runHealth(args[1:])
 		if code != 0 {
 			os.Exit(code)
@@ -180,7 +182,7 @@ subcommands:
                    (sorotrail backfill --help)
   loadtest         run the synthetic ingester load-test harness
                    (sorotrail loadtest --help)
-  index-addresses  rebuild the address→event inverted index from stored events
+  index-addresses  rebuild the addressâ†’event inverted index from stored events
                    (sorotrail index-addresses --help)
   migrate          apply, roll back, or inspect database migrations
                    (sorotrail migrate --help)
@@ -506,14 +508,14 @@ func runService(dryRun bool) error {
 	// stalling the cycle (issue #131).
 	ing.SetDeadLetterSink(st)
 	// Exposes the adaptive poll interval via /stats (issue #146). Always
-	// registered — there is exactly one Ingester per process even when
+	// registered â€” there is exactly one Ingester per process even when
 	// INGESTION_LOCK_ENABLED causes its Run loop to be skipped.
 	api.SetIngester(ing)
 
 	// SIGHUP config hot-reload (issue #148): re-reads and validates the
 	// full environment on every SIGHUP, then applies only the safe subset
 	// (poll interval, log level) to the already-running ingester/logger.
-	// Topology (DATABASE_URL, RPC_URL(S), LOG_FORMAT) never changes live —
+	// Topology (DATABASE_URL, RPC_URL(S), LOG_FORMAT) never changes live â€”
 	// a differing value there is logged and ignored rather than failing
 	// the reload, since it can't be applied to the already-constructed
 	// store/RPC client/log handler without a restart. A validation failure
@@ -646,7 +648,7 @@ func runService(dryRun bool) error {
 
 	apiServer := api.New(apiStore, countingClient, log, cfg.APIKey, specEnricher).WithBroadcaster(bcast)
 	// A spec override written here changes what a contract decodes to, so
-	// the other replicas have to be told — otherwise they keep serving the
+	// the other replicas have to be told â€” otherwise they keep serving the
 	// old spec until their own cache expires.
 	if pg != nil {
 		apiServer.SetSpecInvalidationPublisher(pg)
@@ -803,7 +805,7 @@ func runService(dryRun bool) error {
 	}()
 
 	// A nil report is a component that finished cleanly before any
-	// shutdown was requested — the disabled pruner emits one the moment
+	// shutdown was requested â€” the disabled pruner emits one the moment
 	// it starts. Reading that as "a component died" used to tear the
 	// process down a second after boot. Only the shutdown signal or a
 	// non-nil report ends the loop; every report, nil or not, consumes
@@ -943,7 +945,7 @@ func ingesterOptionsFromConfig(cfg config.Config, dryRun bool) ingester.Options 
 // so the report is not optional: Notifier.Run returns as soon as ctx is
 // cancelled, and the drain loop below waits for exactly one message per
 // component. The webhook used to be launched without a report, which
-// left the drain waiting for a component that never spoke — every
+// left the drain waiting for a component that never spoke â€” every
 // graceful shutdown hung until SIGKILL (issue #1002).
 func runWebhook(ctx context.Context, wh *webhook.Notifier, errCh chan<- error) {
 	wh.Run(ctx)
@@ -958,7 +960,7 @@ func runWebhook(ctx context.Context, wh *webhook.Notifier, errCh chan<- error) {
 // completely: every endpoint demands a key, and the only endpoint that
 // issues keys demands an admin key. The bootstrap value is a plaintext
 // credential in the environment, which is why it is opt-in and why the log
-// line nudges toward replacing it — it exists to be used once and revoked.
+// line nudges toward replacing it â€” it exists to be used once and revoked.
 //
 // Re-running with the same value is a no-op, so restarts are safe.
 func bootstrapAdminKey(ctx context.Context, ts store.TenantStore, key string, log *slog.Logger) error {
@@ -992,8 +994,8 @@ func newLogger(level, format string) *slog.Logger {
 // newLoggerWithLevel builds a logger exactly like newLogger, but also
 // returns the slog.LevelVar backing its handler. slog handlers don't
 // support swapping their level after construction, so a caller that needs
-// to adjust the effective log level in place at runtime — the long-running
-// indexer's SIGHUP config-reload handler — holds onto the returned
+// to adjust the effective log level in place at runtime â€” the long-running
+// indexer's SIGHUP config-reload handler â€” holds onto the returned
 // LevelVar and calls Set on it instead of rebuilding the logger/handler.
 // The one-shot subcommands (replay/backfill/index-addresses) have no
 // reload path, so they keep using the simpler newLogger.
@@ -1043,7 +1045,7 @@ func rpcURLsForLog(cfg config.Config) []string {
 
 // redactURLUserinfo masks the password portion of a URL's userinfo so
 // basic-auth credentials never reach log output. URLs without a password
-// — and unparseable ones, which config validation already rejects — are
+// â€” and unparseable ones, which config validation already rejects â€” are
 // returned unchanged.
 func redactURLUserinfo(raw string) string {
 	u, err := url.Parse(raw)
