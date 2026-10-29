@@ -825,3 +825,17 @@ When nothing above resolves the issue:
 4. If the database is corrupted, restore from backup and let SoroTrail
    re-migrate and re-ingest.
 5. Open an issue on the repository with the gathered diagnostics.
+
+## Dashboards and alerts
+
+Dashboards are provisioned from `deploy/grafana/*.json` (versioned, not exported from a live Grafana). Start at the Overview (`/d/sorotrail-overview`), which shows the SLO indicators recorded in `deploy/prometheus/sorotrail-rules.yml`, then follow its links to a focused view:
+
+| Symptom / alert | Dashboard | Section above |
+|---|---|---|
+| `IngestionLagHigh`, `IngestionErrorsBurst`, `RPCP99LatencyHigh` | Ingestion (`/d/sorotrail-ingestion`) | [Ingestion stalled](#ingestion-stalled) |
+| High API latency or 5xx | Read path (`/d/sorotrail-read-path`) | [API returning stale or missing data](#api-returning-stale-or-missing-data) |
+| `StoreWriteLatencyHigh`, `BackpressureActive`, `EventBatchSizeCritical` | Storage (`/d/sorotrail-storage`) | [Database connection exhaustion](#database-connection-exhaustion) |
+
+Every alert carries a `dashboard_url` annotation and every dashboard links back to this runbook. `make check-monitoring` fails if a dashboard references a metric that is not in `deploy/prometheus/exported-metrics.txt`, reads a recording rule that does not exist, reuses a `uid`, has a panel without a "what good looks like" description, or an alert lacks `dashboard_url`.
+
+Not covered yet: there is no per-tenant, webhook-delivery, or retention/archiver dashboard, because SoroTrail exports no per-tenant or delivery metrics to build them from.
