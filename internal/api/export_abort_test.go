@@ -37,7 +37,15 @@ func exportServer(t *testing.T, st store.Store) *httptest.Server {
 	return srv
 }
 
-func getExport(t *testing.T, srv *httptest.Server, path string) (*http.Response, []byte, error) {
+// exportResponse is what is left of a response once its body has been read and
+// closed: the head and the trailers, which only exist after the body.
+type exportResponse struct {
+	StatusCode int
+	Header     http.Header
+	Trailer    http.Header
+}
+
+func getExport(t *testing.T, srv *httptest.Server, path string) (exportResponse, []byte, error) {
 	t.Helper()
 	req, err := http.NewRequest(http.MethodGet, srv.URL+path, nil)
 	require.NoError(t, err)
@@ -45,7 +53,7 @@ func getExport(t *testing.T, srv *httptest.Server, path string) (*http.Response,
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	body, readErr := io.ReadAll(resp.Body)
-	return resp, body, readErr
+	return exportResponse{StatusCode: resp.StatusCode, Header: resp.Header, Trailer: resp.Trailer}, body, readErr
 }
 
 func TestACompleteExportSaysSoInItsTrailers(t *testing.T) {
