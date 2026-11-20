@@ -143,6 +143,57 @@ func TestParseTokenEvent_LargeI128(t *testing.T) {
 	assert.Equal(t, expected, te.Amount)
 }
 
+func TestScvAddress(t *testing.T) {
+	tests := []struct {
+		name    string
+		raw     string
+		wantAddr string
+		wantOk  bool
+	}{
+		{
+			name:     "account address G-prefixed 56 chars",
+			raw:      `{"address":"GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"}`,
+			wantAddr: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+			wantOk:   true,
+		},
+		{
+			name:     "contract address C-prefixed 56 chars",
+			raw:      `{"address":"CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}`,
+			wantAddr: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+			wantOk:   true,
+		},
+		{
+			name:     "non-address ScVal rejected",
+			raw:      `{"symbol":"transfer"}`,
+			wantAddr: "",
+			wantOk:   false,
+		},
+		{
+			name:     "invalid JSON does not panic",
+			raw:      `{invalid}`,
+			wantAddr: "",
+			wantOk:   false,
+		},
+		{
+			name:     "nil or zero value does not panic",
+			raw:      ``,
+			wantAddr: "",
+			wantOk:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotAddr, gotOk := scvAddress([]byte(tt.raw))
+			assert.Equal(t, tt.wantOk, gotOk)
+			assert.Equal(t, tt.wantAddr, gotAddr)
+			if gotOk {
+				assert.Len(t, gotAddr, 56)
+			}
+		})
+	}
+}
+
 func TestScvSymbol(t *testing.T) {
 	// SCSymbol is string<32> in the Stellar XDR definition, so 32 is the
 	// longest symbol the network can produce.
