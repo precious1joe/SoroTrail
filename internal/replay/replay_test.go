@@ -261,6 +261,42 @@ func TestRun_DryRunWritesNothing(t *testing.T) {
 	assert.ErrorIs(t, err, store.ErrNotFound, "dry run must not persist progress")
 }
 
+func TestRun_TargetVersion(t *testing.T) {
+	// Event 1 has decoder version 1, event 2 has decoder version 2.
+	e1 := seedEvent(1, 100)
+	e1.DecoderVersion = 1
+	e2 := seedEvent(2, 101)
+	e2.DecoderVersion = 2
+
+	st := newFakeStore(e1, e2)
+	// TargetVersion 2 should only replay events with version < 2 (i.e. event 1).
+	r := newTestReplayer(st, improvedDecoder(), Options{FromLedger: 1, ToLedger: 1000, TargetVersion: 2})
+
+	sum, err := r.Run(context.Background())
+	require.NoError(t, err)
+
+	assert.EqualValues(t, 2, sum.Processed)
+	assert.EqualValues(t, 1, sum.Changed, "only the event below target version is re-decoded")
+}
+
+func TestRun_IdentityInvariant(t *testing.T) {
+	orig := seedEvent(1, 100)
+	orig.ID = "0000000100-0000000001"
+	orig.Ledger = 100
+	orig.ContractID = contractA
+
+	st := newFakeStore(orig)
+	r := newTestReplayer(st, improvedDecoder(), Options{FromLedger: 100, ToLedger: 100})
+
+	_, err := r.Run(context.Background())
+	require.NoError(t, err)
+
+	snap := st.DecodedEvents[orig.ID]
+	assert.Equal(t, orig.ID, snap.ID, "event identity (ID) must remain untouched")
+	assert.Equal(t, orig.Ledger, snap.Ledger, "event ledger must remain untouched")
+	assert.Equal(t, orig.ContractID, snap.ContractID, "event contract ID must remain untouched")
+}
+
 func TestJSONEqual(t *testing.T) {
 	tests := []struct {
 		name string

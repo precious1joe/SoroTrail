@@ -39,12 +39,36 @@ sorotrail replay --from-ledger N [--to-ledger M] [flags]
 | `--from-ledger` | — (required) | First ledger to replay, inclusive. |
 | `--to-ledger` | `0` | Last ledger to replay, inclusive. `0` = no upper bound. |
 | `--batch-size` | `500` | Events re-decoded per transaction. |
+| `--target-version` | `0` | Replay only events whose decoder version is strictly less than N. `0` = target all. |
 | `--restart` | `false` | Discard saved progress and replay the range from the start. |
 | `--dry-run` | `false` | Report what would change; write nothing. |
 | `--progress-interval` | `0` | Emit periodic progress to stderr (e.g. `30s`, `1m`). `0` disables. |
 
 Configuration (notably `DATABASE_URL`) comes from the same environment
 variables the indexer uses.
+
+## Decoder versions and targeted replay
+
+Each decoded event records the version of the decoder pipeline that produced its columns (`decoder_version`). When you upgrade the decoder, new ingests record the new version number.
+
+Running replay with `--target-version` allows you to target only the events that predate the upgrade rather than scanning and re-decoding the entire table:
+
+```sh
+sorotrail replay --from-ledger 250000 --target-version 2
+```
+
+Events whose `decoder_version` is already greater than or equal to the target version are skipped instantly without reading their raw XDR or running the decoder.
+
+## Backend support and unsupported backends
+
+Replay requires store backends that implement the replay orchestration interface (`Store`), including raw XDR access, transactional batch updates, and progress state tracking. 
+
+- **Postgres** fully supports replay across all recorded ranges.
+- **SQLite** and other storage backends that do not support maintenance replay workflows refuse honestly via SoroTrail's unsupported-operation sentinel rather than silently doing nothing or failing halfway.
+
+## Archival caveat
+
+Archived chunks hold the historical decoding as of the time of archival and are **not** updated by replay. If you restore data from an archive into a replayed database, you may temporarily have two differing decodings in one table. Operators should run replay after restoring historical archives if consistency across eras is required.
 
 Example — replay everything from ledger 250000 onward in small batches:
 

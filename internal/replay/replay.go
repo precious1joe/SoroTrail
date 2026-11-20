@@ -56,6 +56,9 @@ type Options struct {
 	// means "no upper bound".
 	FromLedger int64
 	ToLedger   int64
+	// TargetVersion, if non-zero, restricts replay to events whose stored
+	// decoder version is less than TargetVersion.
+	TargetVersion int
 	// BatchSize is the number of events re-decoded per transaction.
 	// Defaults to DefaultBatchSize.
 	BatchSize int
@@ -148,8 +151,8 @@ func (r *Replayer) Run(ctx context.Context) (Summary, error) {
 
 	r.log.Info("replay starting",
 		"from_ledger", r.opts.FromLedger, "to_ledger", r.opts.ToLedger,
-		"batch_size", r.opts.BatchSize, "dry_run", r.opts.DryRun,
-		"resumed", sum.Resumed, "after_event_id", cursor)
+		"target_version", r.opts.TargetVersion, "batch_size", r.opts.BatchSize,
+		"dry_run", r.opts.DryRun, "resumed", sum.Resumed, "after_event_id", cursor)
 
 	for {
 		if err := ctx.Err(); err != nil {
@@ -238,6 +241,10 @@ func (r *Replayer) decodeBatch(events []store.DecodedEvent, sum *Summary) []stor
 	for _, e := range events {
 		sum.Processed++
 
+		if r.opts.TargetVersion > 0 && e.DecoderVersion >= r.opts.TargetVersion {
+			continue
+		}
+
 		if !e.HasRawXDR() {
 			sum.Skipped++
 			continue
@@ -253,7 +260,7 @@ func (r *Replayer) decodeBatch(events []store.DecodedEvent, sum *Summary) []stor
 			continue
 		}
 		sum.Changed++
-		rewrites = append(rewrites, store.EventDecoding{ID: e.ID, Topics: topics, Value: value})
+		rewrites = append(rewrites, store.EventDecoding{ID: e.ID, Topics: topics, Value: value, DecoderVersion: decode.DecoderVersion})
 	}
 	return rewrites
 }

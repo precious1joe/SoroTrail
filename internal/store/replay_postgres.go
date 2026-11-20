@@ -97,7 +97,7 @@ func (p *Postgres) StartReplayState(ctx context.Context, fromLedger, toLedger in
 // NextReplayBatch returns up to limit events from [fromLedger, toLedger].
 func (p *Postgres) NextReplayBatch(ctx context.Context, fromLedger, toLedger int64, afterID string, limit int) ([]DecodedEvent, error) {
 	rows, err := p.pool.Query(ctx, `
-		SELECT id, contract_id, ledger, network, raw_topic_xdr, raw_value_xdr, topics, value
+		SELECT id, contract_id, ledger, network, raw_topic_xdr, raw_value_xdr, topics, value, decoder_version
 		FROM events
 		WHERE ledger >= $1 AND ledger <= $2 AND id > $3
 		ORDER BY id ASC
@@ -116,7 +116,7 @@ func (p *Postgres) NextReplayBatch(ctx context.Context, fromLedger, toLedger int
 			rawValue  *string
 		)
 		if err := rows.Scan(&d.ID, &d.ContractID, &d.Ledger, &d.Network, &rawTopics,
-			&rawValue, &d.Topics, &d.Value); err != nil {
+			&rawValue, &d.Topics, &d.Value, &d.DecoderVersion); err != nil {
 			return nil, fmt.Errorf("scanning replay batch: %w", err)
 		}
 		d.RawTopicXDR = rawTopics
@@ -141,12 +141,13 @@ func (p *Postgres) CommitReplayBatch(ctx context.Context, b ReplayBatch) error {
 
 	if len(b.Events) > 0 {
 		if _, err := tx.Exec(ctx, `
-			UPDATE events SET topics = data.topics, value = data.value
+			UPDATE events SET topics = data.topics, value = data.value, decoder_version = data.decoder_version
 			FROM (SELECT unnest($1::text[]) AS id,
-			             unnest($2::jsonb[]) AS topics,
-			             unnest($3::jsonb[]) AS value) AS data
+			             Unnest($2::jsonb[]) AS topics,
+			             Unnest($3::jsonb[]) AS value,
+			             Unnest($4::int[]) AS decoder_version) AS data
 			WHERE events.id = data.id`,
-			eventIDs(b.Events), eventTopics(b.Events), eventValues(b.Events),
+			eventIDs(b.Events), eventTopics(b.Events), eventValues(b.Events), eventDecoderVersions(b.Events),
 		); err != nil {
 			return fmt.Errorf("updating replay events: %w", err)
 		}
@@ -199,6 +200,15 @@ func eventValues(events []EventDecoding) []json.RawMessage {
 	out := make([]json.RawMessage, len(events))
 	for i, e := range events {
 		out[i] = e.Value
+	}
+	return out
+}
+
+// eventDecoderVersions extracts decoder versions from a slice of EventDecoding.
+func eventDecoderVersions(events []EventDecoding) []int {
+	out := make([]int, len(events))
+	for i, e := range events {
+		out[i] = e.DecoderVersion
 	}
 	return out
 }

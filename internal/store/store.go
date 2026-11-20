@@ -122,21 +122,24 @@ type DecodedEventResponse struct {
 // the decoded columns currently stored for it. It is used by the replay
 // engine (internal/replay) to re-derive Topics and Value from the raw XDR.
 type DecodedEvent struct {
-	ID          string
-	ContractID  string
-	Ledger      int64
-	Network     string
-	RawTopicXDR []string
+	ID             string
+	ContractID     string
+	Ledger         int64
+	Network        string
+	RawTopicXDR    []string
 
 	// RawValueXDR is the base64-encoded value XDR the RPC delivered.
 	// Same semantics as [DecodedEvent.RawTopicXDR].
-	RawValueXDR string
+	RawValueXDR    string
 
 	// Topics is the currently-stored decoded topics, as JSON.
-	Topics json.RawMessage
+	Topics         json.RawMessage
 
 	// Value is the currently-stored decoded value, as JSON.
-	Value json.RawMessage
+	Value          json.RawMessage
+
+	// DecoderVersion is the version of the decoder that produced Topics and Value.
+	DecoderVersion int
 }
 
 // HasRawXDR reports whether the event carries enough raw XDR to be replayed.
@@ -847,6 +850,9 @@ type EventDecoding struct {
 
 	// Value is the newly decoded value JSON.
 	Value json.RawMessage
+
+	// DecoderVersion is the version of the decoder that produced this decoding.
+	DecoderVersion int
 }
 
 // Store is the persistence boundary.
