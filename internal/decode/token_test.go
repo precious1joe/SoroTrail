@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+
 func TestParseTokenEvent_Transfer(t *testing.T) {
 	topics := json.RawMessage(`[
 		{"symbol": "transfer"},
@@ -348,6 +349,7 @@ func TestScvAmount(t *testing.T) {
 		})
 	}
 }
+
 
 func TestScvAddress(t *testing.T) {
 	// Real, checksummed strkeys: GA... is an account, CD... a contract.

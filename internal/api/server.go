@@ -38,6 +38,7 @@ var (
 	auditor   *audit.Auditor
 )
 
+// SetAuditor registers the auditor instance used by audit endpoints.
 func SetAuditor(a *audit.Auditor) {
 	auditorMu.Lock()
 	auditor = a
